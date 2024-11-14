@@ -1,6 +1,7 @@
 Bài 1: First project with KeilC
 
 A. Cấu trúc tổng quan
+
     - Giới thiệu qua về KeilC
     - Thực hành ví dụ "Nháy led PC13" (lập trình thanh ghi)
     - Thực hành ví dụ "Đọc trạng thái nút nhấn" (dùng API)
