@@ -1,6 +1,6 @@
-Bài 1: First project with KeilC
+BÀI 1: FIRST PROJECT WITH KEILC
 
-A. Cấu trúc tổng quan
+I, Cấu trúc tổng quan
 
     - Giới thiệu qua về KeilC
     - Thực hành ví dụ "Nháy led PC13" (lập trình thanh ghi)
@@ -263,14 +263,266 @@ A. Cấu trúc tổng quan
             }
 
             ```
-    4, Kết luận:
+    4, Kết luận
         Trong bài này, ta đã làm quen với KeilC - 1 IDE hỗ trợ viết code, biên dịch, debug
         và upload code cho MCU. Và ta cũng đã thực hành viết code sử dụng trực tiếp các
         thanh ghi trong MCU để có thể hiểu rõ cách hoạt động của chúng, rồi sử dụng API để
         áp dụng vào thực tế khi làm việc để viết code dễ hiểu hơn.
 
+BÀI 2: GPIO
 
+II. Cấu trúc tổng quan
 
+    - Giới thiệu qua về SPL
+    - Giới thiệu về GPIO
+    - Thực hành ví dụ sử dụng SPL
+    - Kết luận
+
+    1, Giới thiệu qua về SPL
+        - SPL - Standard Peripherals Library là 1 thư viện chuẩn cho các ngoại vi do hãng
+        STMicroelectronics cung cấp hỗ trợ cho việc lập trình vi điều khiển STM32. 
+        - SPL giúp đơn giản hóa việc lập trình và cấu hình các ngoại vi, cung cấp các hàm API
+        để giúp người dùng dễ dàng truy cập thanh ghi mà không cần phải lập trình trực tiếp
+        cho thanh ghi.
+    2, Giới thiệu về GPIO:
+        - GPIO là một trong các ngoại vi của vi điều khiển STM32, và trong bài này ta sẽ cấu hình
+        cho ngoại vi GPIO bằng SPL.
+        - Trong SPL, các thanh ghi chức năng GPIO, các thuộc tính như chế độ, tốc độ hay là các
+        chân của GPIO đều đã được tổ chức thành 1 struct để dễ dàng truy cập (stm32f10x_gpio.h).
+        a) Cấu hình cho RCC cấp clock điều khiển cho GPIO:
+             - Trong thư viện  stm32f10x_rcc.h cung cấp các Marco để định nghĩa các ngoại vi trong
+             đó có GPIO, và trong thư viện stm32f10x_rcc.c cung cấp các hàm API để dễ dàng cấu
+             hình cho RCC.
+             - Các hàm cơ bản sử dụng để cấp clock là:
+             ```
+             RCC_APB1PeriphClockCmd(uint32_t RCC_APB1Periph, FuntionalState NewState)
+             hoặc
+             RCC_APB2PeriphClockCmd(uint32_t RCC_APB2Periph, FuntionalState NewState)
+             ```
+             -> Hai hàm trên sử dụng để cấp clock cho bus APB1 và APB2. Ở tham số đầu là các
+             ngoại vi đã được định nghĩa trước và ta chỉ cần đưa ngoại vi mong muốn vào.
+             Tham số thứ 2 là trạng thái để bật hay tắt cấp clock: ENABLE và DISABLE.
+             -> Ví dụ ta muốn cấp clock cho GPIO C:
+             ```
+             /* Hàm cấu hình RCC */
+             void RCC_Config(void){
+                 RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+             }
+             ```
+        b) Cấu hình cho GPIO:
+            - Cũng như RCC, để cấp hình cho GPIO mà sử dụng SPL thì ta truy cập vào 2 thư viện
+            `stm32f10x_gpio.h` và `stm32f10x_gpio.c` để xem các hàm được thiết kế với các mục đích
+            khác nhau.
+            - Ví dụ cấu hình GPIO cho chân C:
+            ```
+            /* Hàm cấu hình cho GPIO */
+            void GPIO_Config(void){
+                // Khai báo biến với kiểu dữ liệu GPIO_InitTypeDef để truy cập các member
+                GPIO_InitTypeDef GPIO_InitStructure;
+                // Sau đó truy cập các thuộc tính
+                GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
+                GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+                GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+                // Dùng hàm GPIO_Init để chốt các thuộc tính và chân C
+                GPIO_Init(GPIOC, &GPIO_InitStructure);
+            }
+            ```
+        c) Các hàm API thường sử dụng trong `stm32f10x_gpio.c`:
+            - `GPIO_SetBits(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)`: đặt 1 hoặc nhiều chân ở mức
+            cao.
+            - `GPIO_ResetBits(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)`: đặt 1 hoặc nhiều chân ở
+            mức thấp.
+            - `GPIO_WriteBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, BitAction BitVal)`: đặt 1 chân 
+            ở mức cao hoặc thấp.
+            - `GPIO_Write(GPIO_TypeDef* GPIOx, uint16_t PortVal)`: ghi giá trị 16 bit cho toàn bộ chân
+            trong 1 GPIOx nào đó.
+            - `GPIO_ReadInputData(GPIO_TypeDef* GPIOx)`: đọc giá trị của tất cả các chân (16 bit)
+            cho 1 GPIOx (cấu hình Input).
+            - `GPIO_ReadInputDataBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)`: đọc trạng thái của
+            1 chân trong GPIOx (cấu hình Input).
+            - `GPIO_ReadOutputData(GPIO_TypeDef* GPIOx)`: đọc giá trị của tất cả các chân (16 bit)
+            cho 1 GPIOx (cấu hình Output).
+            - `GPIO_ReadOutputDataBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)`: đọc trạng thái
+            của 1 chân trong GPIOx (cấu hình Output).
+    3, Ví dụ:
+        a) Nháy LED chân PC13:
+        ```
+        /* Hàm cấu hình RCC */
+        void RCC_Config(void){
+            RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+        }
+        /* Hàm cấu hình GPIO */
+        void GPIO_Config(void){
+            GPIO_InitTypeDef GPIO_InitStructure;
+            GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
+            GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+            GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+            GPIO_Init(GPIOC, &GPIO_InitStructure);
+        }
+        /* Hàm main nháy LED */
+        int main(void){
+            RCC_Config();
+            GPIO_Config();
+            while(1){
+                GPIO_WriteBit(GPIOC, GPIO_Pin_13, Bit_SET);
+                for (unsigned int i = 0; i < 1000000; i++);
+                GPIO_WriteBit(GPIOC, GPIO_Pin_13, Bit_RESET);
+                for (unsigned int i = 0; i < 1000000; i++);
+            }
+        }
+        ```
+        b) Nháy đuổi LED:
+        ```
+        /* Hàm cấu hình RCC */
+        void RCC_Config(void){
+            RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+        }
+        /* Hàm cấu hình GPIO */
+        void GPIO_Config(void){
+            GPIO_InitTypeDef GPIO_InitStructure;
+            GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8;
+            GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+            GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+            GPIO_Init(GPIOC, &GPIO_InitStructure);
+        }
+        /* Hàm đuổi LED */
+        void chasing_LED(uint8_t chasing_Times){
+            uint16_t value_LED;
+            for (int j = 0; j < chasing_Times; j++){
+                // Khởi tạo 1 giá trị 16 bit
+                value_LED = 0x0010;
+                // Nháy led bắt đầu từ bit số 4 đến bit số 8 (tương đương đèn nháy bắt đầu từ chân 5 -> 8)
+                for (int i = 0; i < 4; i++){
+                    value_LED <<= 1;
+                    GPIO_Write(GPIOC, value_LED);
+                    for (unsigned int i = 0; i < 1000000; i++);
+                }
+            }
+        }
+        /* Hàm main đuổi LED */
+        int main(void){
+            RCC_Config();
+            GPIO_Config();
+            while(1){
+                // 4 lần nháy đuổi LED
+                chasing_LED(4)
+                // Nháy xong 4 lần thì dừng
+                break;
+            }
+        }
+        ```
+        c) Ví dụ sử dụng nút ấn để bật tắt LED PC13:
+        ```
+        /* Cấu hình RCC */
+        void RCC_Config(void){
+            RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOC, ENABLE);
+        }
+        /* Cấu hình GPIO */
+        void GPIO_Config(void){
+            GPIO_InitTypeDef GPIO_InitStructure;
+            // Cấu hình cho GPIOC chân PC13
+            GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
+            GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+            GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+            GPIO_Init(GPIOC, &GPIO_InitStructure);
+            // Cấu hình cho GPIOA chân PA0
+            GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+            GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+            GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+            GPIO_Init(GPIOA, &GPIO_InitStructure);
+        }
+         /* Hàm main cho nút nhấn */
+        int main(void){
+            RCC_Config();
+            GPIO_Config();
+            while(1){
+                // Khi nhấn nút thì đi vào phần body
+                if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_0) == Bit_RESET){
+                    // Khi nhả nút thì đi đến dòng code tiếp theo
+                    while (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_0) == Bit_RESET);
+                    // Đảo trạng thái hiện tại của LED PC13
+                    if (GPIO_ReadOutputDataBit(GPIOC, GPIO_Pin_13) == Bit_SET){
+                        GPIO_WriteBit(GPIOC, GPIO_Pin_13, Bit_RESET);
+                    } else {
+                        GPIO_WriteBit(GPIOC, GPIO_Pin_13, Bit_SET);
+                    }
+                }
+            }
+        }
+        ```
+    4, Kết luận
+        - Trong bài này ta có thể thấy rằng khi lập trình sử dụng SPL sẽ dễ dàng hơn rất nhiều cho người sử
+        dụng vì code dễ đọc, dễ hiểu hơn là khi chúng ta lập trình trực tiếp cho thanh ghi.
+
+Bài 3: INTERRUPT - TIMER
+
+III. Cấu trúc tổng quan:
+
+    - Giới thiệu về ngắt
+    - Giới thiệu về timer
+    - Cấu hình timer
+    - Kết luận
+
+    1, Giới thiệu về ngắt
+        - Ngắt là 1 sự kiện khẩn cấp xảy ra trong hoặc ngoài vi điều khiển, yêu cầu MCU dừng thực hiện chương
+        trình chính lại và chạy đến thực thi sự kiện ngắt trước.
+        - Khi có một sự kiện ngắt nào đó xảy ra thì chương trình dừng và lưu giá trị mà thanh ghi PC hiện đang
+        chỉ tới vào MSP, và PC sẽ chỉ tới lệnh ngắt ISR để thực thi ngắt đó, -> thực thi xong ngắt ISR thì tiếp
+        theo PC sẽ chỉ tới cái địa chỉ đã được lưu ở MSP và thực hiện tiếp chương trình chính.
+        -> Ở đây, 
+            +) PC (Program Counter): là 1 thanh ghi chỉ tới địa chỉ của lệnh tiếp theo trong chương trình với
+            mục đích cho CPU biết lệnh tiếp theo mà CPU sẽ thực thi.
+            +) ISR (Interrupt Service Routine): là một hàm sử lý ngắt được vi điều khiển gọi tới khi xảy ra ngắt.
+            +) MSP (Main stack pointer): là thanh ghi lưu trữ dữ liệu tạm thời trong quá trình thực thi chương
+            trình, ....
+    2, Giới thiệu về Timer:
+        - Timer là một ngoại vi có chức năng đếm mỗi chu kỳ xung clock một (đếm tăng lên hoặc giảm xuống).
+        - Có 7 Timer trong STM32F103C8 gồm: 1 Systic timer, 2 Watchdog timer, và 4 Timer chính: Timer 1, 2, 3, 4.
+        - Có 3 thứ cần lưu ý:
+            +) Timer clock: TIM1, TIM2, TIM3, TIM4 có clock là 72MHz.
+            +) Prescaler: là bộ chia tần số clock của timer, có giá trị tối đa là unsigned 16 bit - 65535.
+            +) Period: giá trị nạp nào cho timer, tối đa là 65535.
+    3, Cấu hình cho Timer:
+        - Ở bài này chúng ta không sử dụng ngắt timer nên ta sẽ để cho bộ đếm đếm tới giá trị max là 65535 (Period). Nghĩa
+        là, mỗi khoảng thời gian sẽ đếm đến 65535 rồi tràn.
+        ```
+        /* Cấu hình RCC cấp clock cho Timer */
+        void RCC_Config(){
+            RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+        }
+        /* Cấu hình cho Timer 2 */
+        void TIM_Config(void){
+            TIM_TimeBaseInitTypeDef TIM_InitStructure;
+            // Cấu hình bộ chia chia cho 1
+            TIM_InitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+            // Cấu hình Timer đếm đến 65535 trong 0,1ms: 
+            // 0,0001s = 0,1ms = 1/(72*10^6)*(PSC+1) -> PSC = 7199
+            TIM_InitStructure.TIM_Prescaler = 7200 - 1;
+            TIM_InitStructure.TIM_Period = 0xFFFF;
+            // Cấu hình cho bộ đếm đếm lên
+            TIM_InitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+            // Cấu hình cho TIM2
+            TIM_TimeBaseInit(TIM2, &TIM_InitStructure);
+            // Bật ngoại vi TIM2
+            TIM_Cmd(TIM2, ENABLE);
+        }
+        /* Hàm delay 1ms */
+        void delay_ms(uint32_t delay_Time){
+            // Cài giá trị Timer về 0
+            TIM_SetCounter(TIM2,0);
+            // Chờ cho đến khi giá trị của bộ đếm lớn hơn delay_Time*10
+            while (TIM_Get_Counter(TIM2) < delay_Time * 10);
+        }
+        ```
+    4, Kết luận
+        - Ở bài này chúng ta đã học cách cấu hình Timer (chưa sử dụng ngắt Timer) và cách tạo hàm delay 1ms.
+
+Bài 4: COMMUNICATION PROTOCOLS
+
+IV, Cấu trúc tổng quan:
+    - Giới thiệu về giao thức SPI
+    - Giới thiệu về giao thức UART
+    - Giới thiệu về giao thức I2C
 
 
 
